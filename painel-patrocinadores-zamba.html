@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zamba 2027 · Controle de Patrocínio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0a14;
+    --bg-card: #171221;
+    --bg-card-hover: #1d1729;
+    --line: #2a2238;
+    --line-soft: #221b30;
+    --text: #f3eefa;
+    --text-dim: #a497b8;
+    --text-faint: #6f6383;
+    --magenta: #ff2e9a;
+    --orange: #ff7a18;
+    --lime: #c4f042;
+    --purple: #9b4dff;
+    --blue: #4d9bff;
+    --grad: linear-gradient(90deg, #ff2e9a 0%, #ff7a18 55%, #c4f042 100%);
+    --s-todo: #6f6383;
+    --s-contacted: #4d9bff;
+    --s-nego: #ff7a18;
+    --s-closed: #c4f042;
+    --s-dropped: #5a4d6e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; padding-bottom: 80px; }
+  body::before { content:''; position: fixed; inset: 0; background: radial-gradient(900px 500px at 12% -8%, rgba(255,46,154,0.10), transparent 60%), radial-gradient(800px 500px at 92% 4%, rgba(155,77,255,0.10), transparent 60%); pointer-events: none; z-index: 0; }
+  .wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+  header { padding: 38px 0 6px; }
+  .eyebrow { font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px; }
+  h1 { font-family: 'Archivo', sans-serif; font-weight: 900; font-size: clamp(30px, 5vw, 46px); line-height: 0.98; letter-spacing: -0.02em; text-transform: uppercase; }
+  h1 .accent { background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .sub { color: var(--text-dim); margin-top: 10px; font-size: 14.5px; max-width: 620px; }
+
+  .summary { margin-top: 26px; background: var(--bg-card); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; }
+  .summary-top { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .summary-label { font-family: 'Archivo', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
+  .summary-figures { font-family: 'Archivo', sans-serif; font-size: 14px; color: var(--text-dim); }
+  .summary-figures b { color: var(--lime); font-size: 22px; font-weight: 800; }
+  .summary-figures .sep { color: var(--text-faint); margin: 0 4px; }
+  .track { height: 12px; background: #0a0810; border-radius: 99px; overflow: hidden; display: flex; border: 1px solid var(--line-soft); }
+  .track span { height: 100%; transition: width .5s cubic-bezier(.4,0,.2,1); }
+  .track .closed { background: var(--s-closed); } .track .nego { background: var(--s-nego); } .track .contacted { background: var(--s-contacted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; }
+  .legend div { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-dim); }
+  .dot { width: 9px; height: 9px; border-radius: 99px; flex-shrink: 0; }
+  .dot.todo{background:var(--s-todo)} .dot.contacted{background:var(--s-contacted)} .dot.nego{background:var(--s-nego)} .dot.closed{background:var(--s-closed)} .dot.dropped{background:var(--s-dropped)}
+
+  /* Próximas reuniões */
+  .agenda { margin-top: 16px; background: linear-gradient(180deg, rgba(155,77,255,0.07), rgba(77,155,255,0.03)); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; }
+  .agenda h2 { font-family:'Archivo',sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; display:flex; align-items:center; gap:9px; }
+  .agenda h2 svg { width: 15px; height: 15px; stroke: var(--purple); }
+  .agenda-empty { font-size: 13px; color: var(--text-faint); }
+  .meet-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+  .meet-row:first-of-type { border-top: none; }
+  .meet-when { font-family:'Archivo',sans-serif; font-weight: 700; font-size: 13px; min-width: 128px; color: var(--text); }
+  .meet-when .rel { display:block; font-size: 10.5px; font-weight: 600; color: var(--purple); letter-spacing:.04em; text-transform:uppercase; margin-top:1px; }
+  .meet-when.soon .rel { color: var(--orange); }
+  .meet-who { flex: 1; font-size: 13px; }
+  .meet-who b { font-weight: 600; } .meet-who span { color: var(--text-faint); }
+  .meet-cota { font-family:'Archivo',sans-serif; font-size: 10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color: var(--lime); border:1px solid rgba(196,240,66,.3); padding:2px 8px; border-radius:99px; }
+
+  /* Toolbar filtro/busca */
+  .toolbar { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .search { flex: 1; min-width: 200px; position: relative; }
+  .search svg { position:absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; stroke: var(--text-faint); }
+  .search input { width: 100%; background: var(--bg-card); border: 1px solid var(--line); border-radius: 10px; color: var(--text); font-family:'Inter',sans-serif; font-size: 13px; padding: 10px 12px 10px 36px; }
+  .search input:focus { outline: none; border-color: var(--magenta); }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { background: var(--bg-card); border: 1px solid var(--line); color: var(--text-dim); border-radius: 99px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family:'Inter',sans-serif; transition: all .15s; }
+  .chip:hover { color: var(--text); }
+  .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .cota { margin-top: 30px; }
+  .cota.hidden { display: none; }
+  .cota-head { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; flex-wrap: wrap; }
+  .cota-bar { width: 4px; height: 30px; border-radius: 99px; background: var(--grad); flex-shrink: 0; }
+  .cota-title { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 21px; letter-spacing: -0.01em; text-transform: uppercase; }
+  .cota-price { font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 13px; color: var(--bg); background: var(--lime); padding: 3px 10px; border-radius: 99px; }
+  .cota-count { font-size: 12.5px; color: var(--text-faint); margin-left: auto; font-family: 'Archivo',sans-serif; letter-spacing:0.04em; }
+  .cota-desc { font-size: 13px; color: var(--text-faint); margin: 0 0 16px 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 13px; }
+
+  .card { background: var(--bg-card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 11px; transition: border-color .2s, transform .2s, background .2s; position: relative; border-left-width: 3px; }
+  .card:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+  .card.hidden { display: none; }
+  .card[data-status="todo"] { border-left-color: var(--s-todo); }
+  .card[data-status="contacted"] { border-left-color: var(--s-contacted); }
+  .card[data-status="nego"] { border-left-color: var(--s-nego); }
+  .card[data-status="closed"] { border-left-color: var(--s-closed); }
+  .card[data-status="dropped"] { border-left-color: var(--s-dropped); opacity: .55; }
+
+  .anchor-tag { position: absolute; top: 12px; right: 12px; font-family: 'Archivo', sans-serif; font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lime); border: 1px solid rgba(196,240,66,0.35); padding: 2px 7px; border-radius: 99px; }
+  .card-name { font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 16px; padding-right: 56px; line-height: 1.15; }
+  .card-role { font-size: 12.5px; color: var(--text-dim); margin-top: 1px; }
+  .card-company { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
+  .card-company .co-dot { width: 6px; height: 6px; border-radius: 99px; background: var(--magenta); flex-shrink: 0; }
+  .card-contact { display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+  .card-contact a { color: var(--text-dim); text-decoration: none; display: flex; align-items: center; gap: 7px; word-break: break-all; transition: color .15s; }
+  .card-contact a:hover { color: var(--lime); }
+  .card-contact svg { width: 13px; height: 13px; flex-shrink: 0; opacity: .7; }
+  .email-flag { font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 700; letter-spacing: .03em; flex-shrink:0; }
+  .email-flag.valid { color: var(--lime); background: rgba(196,240,66,0.12); }
+  .email-flag.catch { color: var(--orange); background: rgba(255,122,24,0.12); }
+
+  /* deal row: valor proposto */
+  .deal { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .deal label { color: var(--text-faint); font-size: 11px; white-space: nowrap; }
+  .deal .prefix { color: var(--text-dim); font-weight:600; }
+  .deal input { width: 100%; background:#0a0810; border:1px solid var(--line); border-radius:7px; color:var(--text); font-family:'Inter',sans-serif; font-size:12px; padding:6px 9px; }
+  .deal input:focus { outline:none; border-color: var(--lime); }
+
+  .card-foot { display: flex; gap: 8px; margin-top: 2px; align-items: center; }
+  select.status { flex: 1; appearance: none; background: #0a0810; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 28px 7px 10px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a497b8' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; transition: border-color .15s; }
+  select.status:focus { outline: none; border-color: var(--magenta); }
+  .icon-btn { background: #0a0810; border: 1px solid var(--line); border-radius: 8px; color: var(--text-faint); width: 34px; height: 34px; cursor: pointer; font-size: 13px; display:flex; align-items:center; justify-content:center; transition: color .15s, border-color .15s; flex-shrink:0; }
+  .icon-btn:hover { color: var(--lime); border-color: var(--lime); }
+  .icon-btn.active { color: var(--lime); border-color: rgba(196,240,66,.4); }
+  .icon-btn svg { width: 15px; height: 15px; }
+
+  /* expandable panel: meeting + followup + note */
+  .expand { display: none; flex-direction: column; gap: 10px; padding-top: 4px; }
+  .expand.open { display: flex; }
+  .exp-field label { display:block; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+  .exp-field input[type="datetime-local"], .exp-field input[type="date"], .exp-field input[type="text"] { width: 100%; background:#0a0810; border:1px solid var(--line); border-radius:8px; color:var(--text); font-family:'Inter',sans-serif; font-size:12px; padding:8px 10px; }
+  .exp-field input:focus { outline:none; border-color: var(--purple); }
+  .exp-two { display:flex; gap:8px; } .exp-two > div { flex:1; }
+  .cal-btn { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; background: rgba(155,77,255,.12); border:1px solid rgba(155,77,255,.4); color: #c9a8ff; border-radius:8px; padding:8px; font-family:'Archivo',sans-serif; font-weight:700; font-size:11px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; transition: background .15s; }
+  .cal-btn:hover { background: rgba(155,77,255,.22); }
+  .cal-btn svg { width:14px; height:14px; }
+  .cal-btn:disabled { opacity:.4; cursor:not-allowed; }
+  textarea.note { width: 100%; background: #0a0810; border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-family: 'Inter',sans-serif; font-size: 12px; padding: 9px 10px; resize: vertical; min-height: 50px; }
+  textarea.note:focus { outline: none; border-color: var(--purple); }
+
+  /* badges on card showing meeting / followup */
+  .card-badges { display:flex; flex-wrap:wrap; gap:6px; }
+  .badge { font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 6px; display:flex; align-items:center; gap:5px; }
+  .badge svg { width: 11px; height: 11px; }
+  .badge.meet { color: #c9a8ff; background: rgba(155,77,255,.12); }
+  .badge.follow { color: var(--blue); background: rgba(77,155,255,.12); }
+  .badge.follow.late { color: var(--orange); background: rgba(255,122,24,.15); }
+
+  .card-add { border: 1px dashed var(--line); background: transparent; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-faint); cursor: pointer; min-height: 90px; font-size: 13px; font-weight: 600; transition: color .2s, border-color .2s; font-family: 'Archivo', sans-serif; letter-spacing: .03em; }
+  .card-add:hover { color: var(--lime); border-color: var(--lime); }
+
+  .overlay { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(5,3,9,0.78); backdrop-filter: blur(3px); align-items: center; justify-content: center; padding: 20px; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--bg-card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; width: 100%; max-width: 420px; }
+  .modal h3 { font-family: 'Archivo',sans-serif; font-size: 18px; text-transform: uppercase; margin-bottom: 4px; }
+  .modal p.mh { font-size: 12.5px; color: var(--text-faint); margin-bottom: 18px; }
+  .field { margin-bottom: 13px; }
+  .field label { display:block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px; }
+  .field input { width: 100%; background: #0a0810; border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-family: 'Inter',sans-serif; font-size: 13px; padding: 9px 11px; }
+  .field input:focus { outline: none; border-color: var(--magenta); }
+  .modal-foot { display: flex; gap: 10px; margin-top: 20px; }
+  .btn { flex: 1; border: none; border-radius: 9px; padding: 11px; font-family: 'Archivo',sans-serif; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; transition: opacity .15s, background .15s; }
+  .btn-primary { background: var(--grad); color: var(--bg); } .btn-primary:hover { opacity: .9; }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--text-dim); } .btn-ghost:hover { color: var(--text); border-color: var(--text-faint); }
+
+  .saved-flash { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--lime); color: var(--bg); font-family: 'Archivo',sans-serif; font-weight: 700; font-size: 13px; padding: 10px 20px; border-radius: 99px; letter-spacing: .03em; transition: transform .3s cubic-bezier(.4,0,.2,1); z-index: 60; box-shadow: 0 8px 30px rgba(196,240,66,.25); }
+  .saved-flash.show { transform: translateX(-50%) translateY(0); }
+  .saved-flash.warn { background: var(--orange); box-shadow: 0 8px 30px rgba(255,122,24,.3); }
+  .no-results { text-align:center; color: var(--text-faint); padding: 40px 0; font-size: 14px; display:none; }
+  footer { margin-top: 50px; padding: 24px 0; border-top: 1px solid var(--line-soft); color: var(--text-faint); font-size: 12px; }
+  footer b { color: var(--text-dim); }
+
+  /* backup bar */
+  .backup { margin-top: 16px; background: linear-gradient(180deg, rgba(255,46,154,0.06), transparent); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .backup-txt { flex: 1; min-width: 180px; font-size: 12.5px; color: var(--text-dim); }
+  .backup-txt b { color: var(--text); font-family:'Archivo',sans-serif; }
+  .backup-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .bkp-btn { border: none; border-radius: 9px; padding: 9px 16px; font-family:'Archivo',sans-serif; font-weight: 700; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; transition: opacity .15s, background .15s; display:flex; align-items:center; gap:7px; }
+  .bkp-btn svg { width: 14px; height: 14px; }
+  .bkp-primary { background: var(--grad); color: var(--bg); } .bkp-primary:hover { opacity: .9; }
+  .bkp-ghost { background: transparent; border: 1px solid var(--line); color: var(--text-dim); } .bkp-ghost:hover { color: var(--text); border-color: var(--text-faint); }
+  .code-box { width: 100%; }
+  textarea.codeout { width: 100%; margin-top: 12px; background:#0a0810; border:1px solid var(--magenta); border-radius:10px; color:var(--lime); font-family: ui-monospace, monospace; font-size: 11px; padding: 12px; resize: vertical; min-height: 70px; word-break: break-all; }
+
+  @media (max-width: 560px){ .grid { grid-template-columns: 1fr; } .summary-figures b { font-size: 19px; } .meet-when { min-width: 100px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Zamba Music Festival · 22.05.2027 · Palácio Sunset</div>
+    <h1>Controle de <span class="accent">Patrocínio</span></h1>
+    <p class="sub">Mapa de prospecção por cota. Status, reuniões, follow-ups e valores. Use o código de salvamento para guardar seu progresso.</p>
+
+    <div class="backup">
+      <div class="backup-txt"><b>Salvar progresso:</b> gere um código, copie e cole no chat com o Claude. Para retomar depois, cole o código de volta aqui.
+        <span id="backupNotice" style="display:none; color:var(--orange); font-weight:600;"><br>⚠ Neste app o salvamento automático não fica gravado — o código é a forma garantida de não perder nada.</span>
+      </div>
+      <div class="backup-actions">
+        <button class="bkp-btn bkp-primary" id="genCode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Gerar código</button>
+        <button class="bkp-btn bkp-ghost" id="showRestore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4M17 14l-5-5-5 5M12 9v12"/></svg>Restaurar</button>
+      </div>
+      <div class="code-box" id="codeBox" style="display:none"></div>
+    </div>
+
+    <div class="summary">
+      <div class="summary-top">
+        <span class="summary-label">Potencial encaminhado</span>
+        <span class="summary-figures">
+          <b id="closedVal">R$ 0</b>
+          <span class="sep">fechado de</span>
+          <span id="totalVal">R$ 0</span> em cotas mapeadas
+        </span>
+      </div>
+      <div class="track">
+        <span class="closed" id="trkClosed" style="width:0"></span>
+        <span class="nego" id="trkNego" style="width:0"></span>
+        <span class="contacted" id="trkContacted" style="width:0"></span>
+      </div>
+      <div class="legend">
+        <div><span class="dot todo"></span>A contatar</div>
+        <div><span class="dot contacted"></span>Contatado</div>
+        <div><span class="dot nego"></span>Em negociação</div>
+        <div><span class="dot closed"></span>Fechado</div>
+        <div><span class="dot dropped"></span>Descartado</div>
+      </div>
+    </div>
+
+    <div class="agenda" id="agenda">
+      <h2><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Próximas reuniões</h2>
+      <div id="agendaList"><p class="agenda-empty">Nenhuma reunião agendada. Marque uma data de reunião em qualquer card para vê-la aqui.</p></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="searchInput" type="text" placeholder="Buscar por nome, empresa ou cargo...">
+      </div>
+      <div class="filters" id="filters">
+        <button class="chip active" data-f="all">Todos</button>
+        <button class="chip" data-f="todo">A contatar</button>
+        <button class="chip" data-f="contacted">Contatado</button>
+        <button class="chip" data-f="nego">Em negociação</button>
+        <button class="chip" data-f="closed">Fechado</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="board"></main>
+  <p class="no-results" id="noResults">Nenhum contato corresponde à busca.</p>
+
+  <footer>
+    Dados de contato via prospecção · e-mails <b>válido</b> têm entrega confirmada; <b>catch-all</b> têm menor garantia.
+    Telefones não disponíveis nesta base. Âncoras = marcas que você já está abordando.
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Novo contato</h3>
+    <p class="mh" id="modalCotaName">—</p>
+    <div class="field"><label>Nome</label><input id="f-name" placeholder="Nome do decisor"></div>
+    <div class="field"><label>Cargo</label><input id="f-role" placeholder="Ex: Gerente de Marketing"></div>
+    <div class="field"><label>Empresa</label><input id="f-company" placeholder="Nome da empresa"></div>
+    <div class="field"><label>E-mail</label><input id="f-email" placeholder="email@empresa.com.br"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="cancelAdd">Cancelar</button>
+      <button class="btn btn-primary" id="confirmAdd">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="saved-flash" id="flash">Salvo</div>
+
+<script>
+const STATUS = {
+  todo:{label:'A contatar'}, contacted:{label:'Contatado'}, nego:{label:'Em negociação'},
+  closed:{label:'Fechado'}, dropped:{label:'Descartado'}
+};
+
+const SEED = [
+  { id:'apresentadora', title:'Marca Apresentadora', price:80000, desc:'Assina a edição inteira. Grande marca regional/nacional — construtora, banco, varejo de peso.', people:[
+    { id:'a1', name:'RDC Construtora', role:'— definir contato de marketing', company:'RDC Construtora', email:'', flag:'', anchor:true, status:'nego' },
+    { id:'a2', name:'Renato Feller', role:'Chief Marketing Officer', company:'Pilar', email:'renato.feller@soupilar.com.br', flag:'valid', status:'todo' },
+    { id:'a3', name:'Fabrício Arrivabene', role:'Diretor Nacional de Vendas e Marketing', company:'Construtora Tenda', email:'fabricio.arrivabene@tenda.com', flag:'valid', status:'todo' },
+    { id:'a4', name:'Melina Felício', role:'Retail Marketing Manager', company:'JHSF', email:'melinafelicio@jhsf.com.br', flag:'valid', status:'todo' },
+  ]},
+  { id:'vip', title:'Área VIP', price:35000, desc:'Front stage, acesso exclusivo. Automotivo, bebida premium, banco.', people:[
+    { id:'v0', name:'Jeep / RAM (concessionária local)', role:'— definir contato', company:'Concessionária local', email:'', flag:'', anchor:true, status:'nego' },
+    { id:'v1', name:'Roberto Braun', role:'Dir. Comunicação & ESG · fábrica em SJC', company:'Toyota do Brasil', email:'rbraun@toyota.com.br', flag:'valid', status:'todo' },
+    { id:'v2', name:'Priscila Rossi', role:'Head of Events & Communications', company:'Volkswagen', email:'priscila.rossi@volkswagen.com.br', flag:'valid', status:'todo' },
+    { id:'v3', name:'Leandro Ramos', role:'Brand Experience Manager · Indaiatuba', company:'GWM Brasil', email:'leandro.ramos@gwmmotors.com.br', flag:'valid', status:'todo' },
+  ]},
+  { id:'camarote', title:'Camarote', price:30000, desc:'Mezanino, relacionamento. Bebidas, fast-food, lifestyle.', people:[
+    { id:'c1', name:'Giulia Queiroz', role:'Diretora de Marketing', company:'Zamp (BK / Popeyes)', email:'giulia.queiroz@zamp.com.br', flag:'valid', status:'todo' },
+    { id:'c2', name:'Mayara Joplin', role:'Gerente de Trade Marketing', company:'Bauducco', email:'mayaraj@bauducco.com.br', flag:'valid', status:'todo' },
+    { id:'c3', name:'Camila Couto', role:'VP Global Marketing', company:'The Fini Company', email:'camila.couto@finicompany.com', flag:'valid', status:'todo' },
+  ]},
+  { id:'descanso', title:'Área de Descanso', price:30000, desc:'Pausar e recarregar. Telecom, casa/conforto, bem-estar.', people:[
+    { id:'d1', name:'Patrícia Ishizaki', role:'Gerente de Marketing', company:'Claro Brasil', email:'patricia.ishizaki@claro.com.br', flag:'valid', status:'todo' },
+    { id:'d2', name:'Cassio Lehmann', role:'Sales & Marketing Director', company:'Eletronet', email:'cassio.lehmann@eletronet.com', flag:'valid', status:'todo' },
+    { id:'d3', name:'André Marques', role:'Gerente de Marketing', company:'Vero Internet', email:'amarques@verointernet.com.br', flag:'valid', status:'todo' },
+  ]},
+  { id:'foodpark', title:'Food Park / Alimentação', price:25000, desc:'O sabor da experiência. Alimentos, restaurantes, delivery.', people:[
+    { id:'f1', name:'Rodrigo Munaretto', role:'Diretor de Marketing', company:'Subway Brasil', email:'munaretto_r@subway.com', flag:'valid', status:'todo' },
+    { id:'f2', name:'Guilherme Portella', role:'Dir. Comunicação & Corporativo', company:'Lactalis Brasil', email:'guilherme.portella@lactalis.com.br', flag:'valid', status:'todo' },
+  ]},
+  { id:'zen', title:'Área Zen', price:15000, desc:'Respire, relaxe. Bem-estar, cosmético, saúde, fitness.', people:[
+    { id:'z1', name:'Kamila Fonseca', role:'Chief Marketing Officer', company:'Beyoung', email:'kamila.fonseca@beyoung.com.br', flag:'valid', status:'todo' },
+    { id:'z2', name:'Ornella Moraes', role:'Co-fundadora & CMO', company:'Sousmile', email:'ornella@sousmile.com', flag:'valid', status:'todo' },
+    { id:'z3', name:'Sabrina Pinho', role:'Global Marketing Director', company:'Hinode Group', email:'sabrina.pinho@grupohinode.com', flag:'valid', status:'todo' },
+    { id:'z4', name:'William Malfatti', role:'Diretor de Marketing & Comunicação', company:'Grupo Fleury', email:'william.malfatti@grupofleury.com.br', flag:'valid', status:'todo' },
+  ]},
+  { id:'vinil', title:'Espaço Vinil', price:10000, desc:'Mergulho na música que conecta gerações. Lifestyle, mídia, entretenimento, cultura.', people:[
+    { id:'vn1', name:'Caio Pamphilo', role:'Diretor de Marketing', company:'Fundação Cásper Líbero', email:'caio.pamphilo@fcl.com.br', flag:'valid', status:'todo' },
+    { id:'vn2', name:'Lara Pereira', role:'Chief Marketing Officer', company:'Meshme', email:'lara@meshme.com.br', flag:'valid', status:'todo' },
+  ]},
+  { id:'vila', title:'Vila Criativa', price:10000, desc:'Criar, conectar, transformar. Educação, tech, economia criativa.', people:[
+    { id:'vl0', name:'Univap', role:'— já foi parceira · definir contato', company:'Univap', email:'', flag:'', anchor:true, status:'contacted' },
+    { id:'vl1', name:'Isabella Vicentin', role:'Co-fundadora & CMO', company:'CS Academy (Jundiaí)', email:'isabella.vicentin@csacademy.com.br', flag:'valid', status:'todo' },
+    { id:'vl2', name:'Alessandro Novo', role:'Diretor de Criação', company:'ESPM', email:'alessandro.novo@espm.br', flag:'valid', status:'todo' },
+    { id:'vl3', name:'Marcos Costa', role:'Growth & Partner Success', company:'G4 Educação', email:'marcos.costa@g4educacao.com', flag:'valid', status:'todo' },
+  ]},
+];
+
+const KEY = 'zamba_sponsor_board_v1';
+let data;
+let activeFilter = 'all';
+let searchTerm = '';
+
+// Camada de armazenamento: usa localStorage (Safari/navegador, persiste de verdade)
+// e cai para window.storage (dentro do app Claude) se localStorage não existir.
+const store = {
+  async get(k){
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const v = localStorage.getItem(k);
+        return v != null ? { value: v } : null;
+      }
+    } catch(e){}
+    if (typeof window !== 'undefined' && window.storage) return await window.storage.get(k);
+    return null;
+  },
+  async set(k, v){
+    let okLocal = false;
+    try {
+      if (typeof localStorage !== 'undefined') { localStorage.setItem(k, v); okLocal = true; }
+    } catch(e){}
+    if (okLocal) return { value: v };
+    if (typeof window !== 'undefined' && window.storage) return await window.storage.set(k, v);
+    throw new Error('sem armazenamento disponível');
+  }
+};
+
+async function load() {
+  try {
+    const res = await store.get(KEY);
+    data = res ? JSON.parse(res.value) : structuredClone(SEED);
+  } catch { data = structuredClone(SEED); }
+  if (!Array.isArray(data) || !data.length) data = structuredClone(SEED);
+  // ensure new fields exist on every person (migration from v1)
+  data.forEach(c => c.people.forEach(p => {
+    if (p.meeting === undefined) p.meeting = '';
+    if (p.followup === undefined) p.followup = '';
+    if (p.nextAction === undefined) p.nextAction = '';
+    if (p.proposed === undefined) p.proposed = '';
+  }));
+  render();
+  // Detecta se este ambiente grava de verdade; se não, mostra o aviso desde já
+  try {
+    await store.set(KEY, JSON.stringify(data));
+    storageOk = true;
+  } catch (e) {
+    storageOk = false;
+    updateBackupNotice();
+  }
+}
+
+let saveTimer;
+let storageOk = null; // null = desconhecido, true/false após primeira tentativa
+let pendingEdits = false;
+async function save(flash=true) {
+  try {
+    const res = await store.set(KEY, JSON.stringify(data));
+    storageOk = true; pendingEdits = false;
+    if (flash) showFlash('Salvo', false);
+  } catch (e) {
+    storageOk = false; pendingEdits = true;
+    // Falha esperada em alguns ambientes — não quebra nada. O código de backup é a fonte confiável.
+    if (flash) showFlash('Edição feita — gere um código para salvar', true);
+    updateBackupNotice();
+  }
+}
+function showFlash(msg, warn) {
+  clearTimeout(saveTimer);
+  const f = document.getElementById('flash');
+  f.textContent = msg;
+  f.classList.toggle('warn', !!warn);
+  f.classList.add('show');
+  saveTimer = setTimeout(()=>f.classList.remove('show'), warn ? 2200 : 1100);
+}
+function updateBackupNotice() {
+  const n = document.getElementById('backupNotice');
+  if (n && storageOk === false) n.style.display = 'block';
+}
+
+const fmt = n => 'R$ ' + Number(n).toLocaleString('pt-BR');
+const ICON_MAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>';
+const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+const ICON_GEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) + ' · ' +
+         d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+function relTime(iso) {
+  const d = new Date(iso), now = new Date();
+  const days = Math.ceil((d - now) / 86400000);
+  if (days < 0) return 'passou';
+  if (days === 0) return 'hoje';
+  if (days === 1) return 'amanhã';
+  if (days < 7) return `em ${days} dias`;
+  return `em ${Math.ceil(days/7)} sem`;
+}
+
+function findCotaOf(personId){ return data.find(c => c.people.some(p=>p.id===personId)); }
+
+function render() {
+  renderAgenda();
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  let total = 0, closed = 0, nego = 0, contacted = 0;
+
+  data.forEach(cota => {
+    total += cota.price;
+    const closedHere = cota.people.some(p => p.status === 'closed');
+    const negoHere = !closedHere && cota.people.some(p => p.status === 'nego');
+    const contactedHere = !closedHere && !negoHere && cota.people.some(p => p.status === 'contacted');
+    if (closedHere) closed += cota.price; else if (negoHere) nego += cota.price; else if (contactedHere) contacted += cota.price;
+
+    const sec = document.createElement('section');
+    sec.className = 'cota'; sec.dataset.cota = cota.id;
+    const active = cota.people.filter(p => p.status !== 'dropped');
+    sec.innerHTML = `
+      <div class="cota-head">
+        <div class="cota-bar"></div>
+        <span class="cota-title">${cota.title}</span>
+        <span class="cota-price">${fmt(cota.price)}</span>
+        <span class="cota-count">${active.length} ${active.length===1?'alvo':'alvos'}</span>
+      </div>
+      <p class="cota-desc">${cota.desc}</p>
+      <div class="grid"></div>`;
+    board.appendChild(sec);
+    const grid = sec.querySelector('.grid');
+    cota.people.forEach(p => grid.appendChild(buildCard(cota, p)));
+    const add = document.createElement('div');
+    add.className = 'card card-add'; add.innerHTML = '+ Adicionar contato';
+    add.onclick = () => openAdd(cota.id, cota.title);
+    grid.appendChild(add);
+  });
+
+  document.getElementById('totalVal').textContent = fmt(total);
+  document.getElementById('closedVal').textContent = fmt(closed);
+  const pct = v => total ? (v/total*100) : 0;
+  document.getElementById('trkClosed').style.width = pct(closed)+'%';
+  document.getElementById('trkNego').style.width = pct(nego)+'%';
+  document.getElementById('trkContacted').style.width = pct(contacted)+'%';
+
+  applyFilter();
+}
+
+function renderAgenda() {
+  const list = document.getElementById('agendaList');
+  const meetings = [];
+  data.forEach(c => c.people.forEach(p => {
+    if (p.meeting && p.status !== 'dropped') meetings.push({ p, cota: c });
+  }));
+  meetings.sort((a,b)=> new Date(a.p.meeting) - new Date(b.p.meeting));
+  const upcoming = meetings.filter(m => new Date(m.p.meeting) >= new Date(Date.now()-86400000));
+  if (!upcoming.length) {
+    list.innerHTML = '<p class="agenda-empty">Nenhuma reunião agendada. Marque uma data de reunião em qualquer card para vê-la aqui.</p>';
+    return;
+  }
+  list.innerHTML = upcoming.map(m => {
+    const rel = relTime(m.p.meeting);
+    const soon = ['hoje','amanhã'].includes(rel);
+    return `<div class="meet-row">
+      <div class="meet-when ${soon?'soon':''}">${fmtDateTime(m.p.meeting)}<span class="rel">${rel}</span></div>
+      <div class="meet-who"><b>${m.p.name}</b> <span>· ${m.p.company}</span></div>
+      <span class="meet-cota">${m.cota.title}</span>
+    </div>`;
+  }).join('');
+}
+
+function buildCard(cota, p) {
+  const card = document.createElement('div');
+  card.className = 'card'; card.dataset.status = p.status; card.dataset.pid = p.id;
+  const flagHtml = p.flag === 'valid' ? '<span class="email-flag valid">válido</span>'
+                 : p.flag === 'catch' ? '<span class="email-flag catch">catch-all</span>' : '';
+  const emailRow = p.email
+    ? `<a href="mailto:${p.email}" title="Enviar e-mail">${ICON_MAIL}<span>${p.email}</span>${flagHtml}</a>
+       <a href="#" data-copy="${p.email}" title="Copiar e-mail">${ICON_COPY}<span>Copiar e-mail</span></a>`
+    : `<span style="color:var(--text-faint);font-size:12px;display:flex;gap:7px;align-items:center">${ICON_MAIL} contato a definir</span>`;
+  const opts = Object.entries(STATUS).map(([k,v]) => `<option value="${k}" ${p.status===k?'selected':''}>${v.label}</option>`).join('');
+
+  // badges
+  let badges = '';
+  if (p.meeting) badges += `<span class="badge meet">${ICON_CAL}${fmtDateTime(p.meeting)}</span>`;
+  if (p.followup) {
+    const late = new Date(p.followup) < new Date(new Date().toDateString());
+    const fd = new Date(p.followup).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+    badges += `<span class="badge follow ${late?'late':''}">↻ Follow-up ${fd}${late?' (atrasado)':''}</span>`;
+  }
+
+  const hasDetails = p.meeting || p.followup || p.nextAction || p.note || p.proposed;
+
+  card.innerHTML = `
+    ${p.anchor ? '<span class="anchor-tag">Âncora</span>' : ''}
+    <div>
+      <div class="card-name">${p.name}</div>
+      <div class="card-role">${p.role}</div>
+    </div>
+    <div class="card-company"><span class="co-dot"></span>${p.company}</div>
+    <div class="card-contact">${emailRow}</div>
+    ${badges ? `<div class="card-badges">${badges}</div>` : ''}
+    <div class="deal">
+      <label>Valor proposto</label>
+      <span class="prefix">R$</span>
+      <input type="text" inputmode="numeric" class="proposed" value="${p.proposed||''}" placeholder="${(cota.price).toLocaleString('pt-BR')}">
+    </div>
+    <div class="card-foot">
+      <select class="status">${opts}</select>
+      <button class="icon-btn ${hasDetails?'active':''}" title="Reunião, follow-up e notas">${ICON_GEAR}</button>
+    </div>
+    <div class="expand">
+      <div class="exp-field">
+        <label>Reunião agendada</label>
+        <input type="datetime-local" class="meeting" value="${p.meeting||''}">
+      </div>
+      <button class="cal-btn add-cal" ${p.meeting?'':'disabled'}>${ICON_CAL} Adicionar ao calendário</button>
+      <div class="exp-two">
+        <div class="exp-field">
+          <label>Follow-up</label>
+          <input type="date" class="followup" value="${p.followup||''}">
+        </div>
+        <div class="exp-field">
+          <label>Próxima ação</label>
+          <input type="text" class="nextaction" value="${p.nextAction||''}" placeholder="Ex: enviar proposta">
+        </div>
+      </div>
+      <div class="exp-field">
+        <label>Anotações</label>
+        <textarea class="note" placeholder="Histórico do contato, retorno, condições...">${p.note||''}</textarea>
+      </div>
+    </div>`;
+
+  // status
+  card.querySelector('.status').addEventListener('change', e => {
+    p.status = e.target.value; card.dataset.status = p.status; save(); render();
+  });
+  // proposed value
+  const propInput = card.querySelector('.proposed');
+  let pt;
+  propInput.addEventListener('input', () => {
+    p.proposed = propInput.value.replace(/[^\d.,]/g,'');
+    clearTimeout(pt); pt = setTimeout(()=>save(false), 500);
+  });
+  propInput.addEventListener('blur', () => { clearTimeout(pt); p.proposed = propInput.value.replace(/[^\d.,]/g,''); save(); });
+  // expand toggle
+  const gear = card.querySelector('.icon-btn');
+  const expand = card.querySelector('.expand');
+  gear.addEventListener('click', () => expand.classList.toggle('open'));
+  // meeting
+  const meetInput = card.querySelector('.meeting');
+  const calBtn = card.querySelector('.add-cal');
+  meetInput.addEventListener('change', () => {
+    p.meeting = meetInput.value; calBtn.disabled = !p.meeting; save(); render();
+  });
+  calBtn.addEventListener('click', () => downloadICS(p, cota));
+  // followup
+  const fu = card.querySelector('.followup');
+  fu.addEventListener('change', () => { p.followup = fu.value; save(); render(); });
+  // next action
+  const na = card.querySelector('.nextaction');
+  let nat;
+  na.addEventListener('input', () => { p.nextAction = na.value; clearTimeout(nat); nat=setTimeout(()=>save(false),500); });
+  na.addEventListener('blur', () => { clearTimeout(nat); p.nextAction = na.value; save(); });
+  // note
+  const ta = card.querySelector('.note');
+  let nt;
+  ta.addEventListener('input', () => { p.note = ta.value; clearTimeout(nt); nt=setTimeout(()=>save(false),500); });
+  ta.addEventListener('blur', () => { clearTimeout(nt); p.note = ta.value; save(); });
+  // copy
+  card.querySelectorAll('[data-copy]').forEach(el => {
+    el.addEventListener('click', ev => {
+      ev.preventDefault();
+      navigator.clipboard.writeText(el.dataset.copy).then(()=>{
+        const sp = el.querySelector('span'); const old = sp.textContent;
+        sp.textContent = 'Copiado!'; setTimeout(()=>sp.textContent=old, 1200);
+      });
+    });
+  });
+  return card;
+}
+
+function downloadICS(p, cota) {
+  const start = new Date(p.meeting);
+  const end = new Date(start.getTime() + 60*60*1000);
+  const toICS = d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const desc = `Reunião de patrocínio Zamba 2027 — cota ${cota.title}.\\n${p.role} · ${p.company}${p.email?'\\nE-mail: '+p.email:''}${p.nextAction?'\\nPróxima ação: '+p.nextAction:''}`;
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Zamba//Patrocinio//PT','BEGIN:VEVENT',
+    `UID:${p.id}-${Date.now()}@zamba`,`DTSTAMP:${toICS(new Date())}`,`DTSTART:${toICS(start)}`,`DTEND:${toICS(end)}`,
+    `SUMMARY:Zamba · ${p.name} (${p.company})`,`DESCRIPTION:${desc}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const blob = new Blob([ics], {type:'text/calendar'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `reuniao-${p.name.toLowerCase().replace(/\s+/g,'-')}.ics`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---- Filter & search ---- */
+function applyFilter() {
+  let anyVisible = false;
+  document.querySelectorAll('.cota').forEach(sec => {
+    let visibleInSec = 0;
+    sec.querySelectorAll('.card:not(.card-add)').forEach(card => {
+      const p = findPerson(card.dataset.pid);
+      if (!p) return;
+      const matchStatus = activeFilter === 'all' || p.status === activeFilter;
+      const hay = (p.name+' '+p.company+' '+p.role).toLowerCase();
+      const matchSearch = !searchTerm || hay.includes(searchTerm);
+      const show = matchStatus && matchSearch;
+      card.classList.toggle('hidden', !show);
+      if (show) { visibleInSec++; anyVisible = true; }
+    });
+    const addBtn = sec.querySelector('.card-add');
+    if (addBtn) addBtn.classList.toggle('hidden', activeFilter !== 'all' || !!searchTerm);
+    sec.classList.toggle('hidden', visibleInSec === 0 && (activeFilter!=='all' || !!searchTerm));
+  });
+  document.getElementById('noResults').style.display = anyVisible ? 'none' : 'block';
+}
+function findPerson(id){ for(const c of data){ const p=c.people.find(x=>x.id===id); if(p) return p; } return null; }
+
+document.getElementById('searchInput').addEventListener('input', e => { searchTerm = e.target.value.trim().toLowerCase(); applyFilter(); });
+document.getElementById('filters').addEventListener('click', e => {
+  if (!e.target.classList.contains('chip')) return;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  e.target.classList.add('active');
+  activeFilter = e.target.dataset.f;
+  applyFilter();
+});
+
+/* ---- Add modal ---- */
+let addCotaId = null;
+function openAdd(id, title) {
+  addCotaId = id;
+  document.getElementById('modalCotaName').textContent = title;
+  ['f-name','f-role','f-company','f-email'].forEach(f=>document.getElementById(f).value='');
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+function closeAdd(){ document.getElementById('overlay').classList.remove('open'); }
+document.getElementById('cancelAdd').onclick = closeAdd;
+document.getElementById('overlay').addEventListener('click', e => { if(e.target.id==='overlay') closeAdd(); });
+document.getElementById('confirmAdd').onclick = () => {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const cota = data.find(c=>c.id===addCotaId);
+  cota.people.push({ id:'u'+Date.now(), name,
+    role: document.getElementById('f-role').value.trim() || '—',
+    company: document.getElementById('f-company').value.trim() || '—',
+    email: document.getElementById('f-email').value.trim(),
+    flag:'', status:'todo', custom:true, meeting:'', followup:'', nextAction:'', proposed:'' });
+  closeAdd(); save(); render();
+};
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeAdd(); });
+
+// Rede de segurança: salva qualquer edição pendente ao sair ou trocar de aba
+function flushSave(){ try { if (data) store.set(KEY, JSON.stringify(data)); } catch(e){} }
+window.addEventListener('beforeunload', flushSave);
+window.addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(); });
+
+/* ---- Backup por código (à prova de reset do ambiente) ---- */
+function encodeState(){
+  // compacta só os campos editáveis por pessoa, por id
+  const slim = {};
+  data.forEach(c => c.people.forEach(p => {
+    const e = {};
+    if (p.status && p.status!=='todo') e.s = p.status;
+    if (p.meeting) e.m = p.meeting;
+    if (p.followup) e.f = p.followup;
+    if (p.nextAction) e.a = p.nextAction;
+    if (p.proposed) e.v = p.proposed;
+    if (p.note) e.n = p.note;
+    if (p.custom) { e.c = 1; e.nm=p.name; e.rl=p.role; e.co=p.company; e.em=p.email; e.ct=findCotaOf(p.id)?.id; }
+    if (Object.keys(e).length) slim[p.id] = e;
+  }));
+  const json = JSON.stringify(slim);
+  return 'ZAMBA1:' + btoa(unescape(encodeURIComponent(json)));
+}
+function applyState(code){
+  let raw = code.trim();
+  if (!raw.startsWith('ZAMBA1:')) throw new Error('Código inválido');
+  const json = decodeURIComponent(escape(atob(raw.slice(7))));
+  const slim = JSON.parse(json);
+  // re-seed base then overlay
+  data = structuredClone(SEED);
+  data.forEach(c => c.people.forEach(p => { p.meeting=''; p.followup=''; p.nextAction=''; p.proposed=''; }));
+  // first re-create custom people
+  Object.entries(slim).forEach(([id,e]) => {
+    if (e.c) {
+      const cota = data.find(c=>c.id===e.ct) || data[0];
+      cota.people.push({ id, name:e.nm, role:e.rl||'—', company:e.co||'—', email:e.em||'', flag:'', status:'todo', custom:true, meeting:'',followup:'',nextAction:'',proposed:'' });
+    }
+  });
+  // then overlay fields
+  Object.entries(slim).forEach(([id,e]) => {
+    const p = findPerson(id); if(!p) return;
+    if (e.s) p.status=e.s; if (e.m) p.meeting=e.m; if (e.f) p.followup=e.f;
+    if (e.a) p.nextAction=e.a; if (e.v) p.proposed=e.v; if (e.n) p.note=e.n;
+  });
+}
+
+// Força gravar todos os campos visíveis no objeto data (evita perder edição com cursor ativo)
+function flushAllFields(){
+  // tira o foco do campo ativo para disparar qualquer blur pendente
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  document.querySelectorAll('.card[data-pid]').forEach(card => {
+    const p = findPerson(card.dataset.pid);
+    if (!p) return;
+    const prop = card.querySelector('.proposed');
+    const meet = card.querySelector('.meeting');
+    const fu   = card.querySelector('.followup');
+    const na   = card.querySelector('.nextaction');
+    const note = card.querySelector('.note');
+    if (prop) p.proposed = prop.value.replace(/[^\d.,]/g,'');
+    if (meet) p.meeting = meet.value;
+    if (fu)   p.followup = fu.value;
+    if (na)   p.nextAction = na.value;
+    if (note) p.note = note.value;
+  });
+}
+
+document.getElementById('genCode').addEventListener('click', () => {
+  flushAllFields();
+  const box = document.getElementById('codeBox');
+  const code = encodeState();
+  box.style.display = 'block';
+  box.innerHTML = `<textarea class="codeout" readonly>${code}</textarea>
+    <button class="bkp-btn bkp-primary" id="copyCode" style="margin-top:8px">Copiar código</button>`;
+  const ta = box.querySelector('.codeout');
+  ta.focus(); ta.select();
+  document.getElementById('copyCode').onclick = () => {
+    navigator.clipboard.writeText(code).then(()=>{
+      const b=document.getElementById('copyCode'); b.textContent='Copiado! Cole no chat'; setTimeout(()=>b.textContent='Copiar código',1800);
+    });
+  };
+});
+
+document.getElementById('showRestore').addEventListener('click', () => {
+  const box = document.getElementById('codeBox');
+  box.style.display = 'block';
+  box.innerHTML = `<textarea class="codeout" placeholder="Cole aqui o código que começa com ZAMBA1:..." style="color:var(--text)"></textarea>
+    <button class="bkp-btn bkp-primary" id="doRestore" style="margin-top:8px">Restaurar progresso</button>`;
+  const ta = box.querySelector('.codeout'); ta.focus();
+  document.getElementById('doRestore').onclick = () => {
+    try {
+      applyState(ta.value);
+      save(); render();
+      box.style.display='none';
+      const f=document.getElementById('flash'); f.textContent='Progresso restaurado'; f.classList.add('show');
+      setTimeout(()=>{f.classList.remove('show'); setTimeout(()=>f.textContent='Salvo',300);}, 1600);
+    } catch(err){ alert('Não consegui ler esse código. Verifique se copiou completo (começa com ZAMBA1:).'); }
+  };
+});
+
+load();
+</script>
+</body>
+</html>
